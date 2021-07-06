@@ -1,4 +1,4 @@
-package phaserush.cmpt365p1;
+package phaserush.cmpt365p1.q1;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
