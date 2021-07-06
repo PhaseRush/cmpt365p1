@@ -3,9 +3,9 @@ package phaserush.cmpt365p1;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
 
 
 public class Waver {
@@ -14,7 +14,11 @@ public class Waver {
     Sampler samplingGraph;
 
     public Waver() {
-        file = new File(Objects.requireNonNull(this.getClass().getResource("/sample.wav")).getFile());
+        JFileChooser fileChooser = new JFileChooser();
+        JFrame frame = new JFrame();
+        fileChooser.showOpenDialog(frame);
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        file = fileChooser.getSelectedFile();
     }
 
     public void createAudioInputStream() throws UnsupportedAudioFileException, IOException {
