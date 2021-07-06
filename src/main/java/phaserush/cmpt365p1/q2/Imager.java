@@ -3,18 +3,19 @@ package phaserush.cmpt365p1.q2;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.color.ColorSpace;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorConvertOp;
-import java.awt.image.ColorModel;
 import java.io.File;
 import java.io.IOException;
 
-public class Imager {
+public class Imager extends JFrame {
     static File file;
     static JFrame parent;
     static int WIDTH;
     static int HEIGHT;
+    static int currentImage = 0;
 
     static int[][] ditherMatrix = {
             {3, 7, 4},
@@ -22,15 +23,47 @@ public class Imager {
             {2, 8, 5}
     };
 
+    private static void nextImage() {
+        System.out.println(currentImage);
+        parent.dispatchEvent(new WindowEvent(parent, WindowEvent.WINDOW_CLOSING));
+        reset();
+        switch (currentImage % 4) {
+            case 0 -> displayImage(joinBufferedImage(originalImage, grayscaleImage));
+            case 1 -> displayImage(joinBufferedImage(grayscaleImage, ditheredImage));
+            case 2 -> displayImage(joinBufferedImage(originalImage, autoleveledImage));
+            case 3 -> displayImage(originalImage);
+        }
+        currentImage++;
+    }
+
     static BufferedImage originalImage;
     static int[] bitmap;
     static BufferedImage grayscaleImage;
     static BufferedImage ditheredImage;
     static BufferedImage autoleveledImage;
 
+    static JFrame reset() {
+        parent = new JFrame();
+        parent.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                nextImage();
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+            }
+        });
+        return parent;
+    }
+
     public static void main(String[] args) throws IOException {
         JFileChooser fileChooser = new JFileChooser();
-        parent = new JFrame();
+        parent = reset();
         fileChooser.showOpenDialog(parent);
         fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         file = fileChooser.getSelectedFile();
@@ -45,12 +78,11 @@ public class Imager {
                 0,
                 WIDTH);
 
-
-//        displayImage(originalImage);
+        displayImage(originalImage);
         generateGrayscale();
 //        displayImage(joinBufferedImage(originalImage, grayscaleImage));
         generateDither();
-        displayImage(joinBufferedImage(originalImage, ditheredImage));
+//        displayImage(joinBufferedImage(originalImage, ditheredImage));
     }
 
     static void generateGrayscale() {
@@ -93,10 +125,15 @@ public class Imager {
         ditheredImage = dither;
     }
 
+    static BufferedImage generateAutolevel() {
+        return null;
+    }
+
     /*
     joins two buffered images into one, with first image on the left.
      */
     public static BufferedImage joinBufferedImage(BufferedImage img1, BufferedImage img2) {
+        System.out.println();
         final int WIDTH = img1.getWidth() + img2.getWidth();
         final int HEIGHT = Math.max(img1.getHeight(), img2.getHeight());
 
