@@ -9,8 +9,9 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
-public class Imager extends JFrame {
+public class Imager {
     static File file;
     static JFrame parent;
     static int WIDTH;
@@ -18,10 +19,10 @@ public class Imager extends JFrame {
     static int currentImage = 0;
 
     static int[][] ditherMatrix = {
-            {3, 7, 4},
-            {6, 1, 9},
-            {2, 8, 5}
-    };
+            {1, 9, 3, 11},
+            {13, 5, 15, 7},
+            {4, 12, 2, 10},
+            {16, 8, 14, 6}};
 
     private static void nextImage() {
         System.out.println(currentImage);
@@ -70,19 +71,14 @@ public class Imager extends JFrame {
         originalImage = ImageIO.read(file);
         WIDTH = originalImage.getWidth();
         HEIGHT = originalImage.getHeight();
-        bitmap = originalImage.getRGB(0,
-                0,
-                WIDTH,
-                HEIGHT,
-                null,
-                0,
-                WIDTH);
+        bitmap = originalImage.getRGB(0, 0, WIDTH, HEIGHT, null, 0, WIDTH);
 
         displayImage(originalImage);
         generateGrayscale();
 //        displayImage(joinBufferedImage(originalImage, grayscaleImage));
         generateDither();
 //        displayImage(joinBufferedImage(originalImage, ditheredImage));
+        generateAutolevel();
     }
 
     static void generateGrayscale() {
@@ -116,8 +112,7 @@ public class Imager extends JFrame {
                 int pix = originalImage.getRGB(x, y);
                 c = (pix & 0xff0000) >> 16;
                 gray = c;
-                gray += gray * ditherMatrix[x % 3][y % 3] / 10;
-
+                gray += gray * ditherMatrix[x % 3][y % 3] / 17;
 
                 dither.setRGB(x, y, gray < 192 ? 0 : 0xff_ff_ff_ff);
             }
@@ -126,7 +121,75 @@ public class Imager extends JFrame {
     }
 
     static BufferedImage generateAutolevel() {
-        return null;
+        int[] rHist = new int[256];
+        int[] gHist = new int[256];
+        int[] bHist = new int[256];
+
+        int r, g, b, a;
+        for (int x = 0; x < originalImage.getWidth(); x++) {
+            for (int y = 0; y < originalImage.getHeight(); y++) {
+                int pix = originalImage.getRGB(x, y);
+                b = pix & 0xff;
+                g = (pix & 0xff00) >> 8;
+                r = (pix & 0xff0000) >> 16;
+
+                rHist[r]++;
+                gHist[g]++;
+                bHist[b]++;
+            }
+        }
+        System.out.println(Arrays.toString(rHist));
+        System.out.println(Arrays.toString(gHist));
+        System.out.println(Arrays.toString(bHist));
+
+        double scale = 255.0 / (originalImage.getWidth() * originalImage.getHeight());
+        System.out.println("scale\t" + scale);
+
+        int[] rScaledHist = new int[256];
+        int[] gScaledHist = new int[256];
+        int[] bScaledHist = new int[256];
+
+        long rTot = 0;
+        long gTot = 0;
+        long bTot = 0;
+
+        for (int i = 0; i < 256; i++) {
+            rTot += rHist[i];
+            r = (int) (rTot * scale);
+            rScaledHist[i] = Math.min(255, r);
+
+            gTot += gHist[i];
+            g = (int) (gTot * scale);
+            gScaledHist[i] = Math.min(255, g);
+
+            bTot += bHist[i];
+            b = (int) (bTot * scale);
+            bScaledHist[i] = Math.min(255, b);
+        }
+
+        BufferedImage leveled = new BufferedImage(originalImage.getWidth(), originalImage.getHeight(), originalImage.getType());
+
+        Color pix;
+        int rgbaLeveled;
+        for (int x = 0; x < originalImage.getWidth(); x++) {
+            for (int y = 0; y < originalImage.getHeight(); y++) {
+                pix = new Color(originalImage.getRGB(x, y));
+                r = rScaledHist[pix.getRed()];
+                g = gScaledHist[pix.getGreen()];
+                b = bScaledHist[pix.getBlue()];
+                a = pix.getAlpha();
+
+//                System.out.println(r + "\t" + g + "\t" + b);
+                rgbaLeveled = ((a & 0xFF) << 24) |
+                        ((r & 0xFF) << 16) |
+                        ((g & 0xFF) << 8) |
+                        ((b & 0xFF));
+//                System.out.println(rgbaLeveled);
+                leveled.setRGB(x, y, rgbaLeveled);
+            }
+        }
+        autoleveledImage = leveled;
+        return leveled;
     }
 
     /*
