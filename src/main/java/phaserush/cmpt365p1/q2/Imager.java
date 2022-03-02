@@ -54,10 +54,9 @@ public class Imager {
     }
 
     public static void main(String[] args) throws IOException {
-        JFileChooser fileChooser = new JFileChooser();
+        JFileChooser fileChooser = new JFileChooser("./src/main/resources");
         parent = reset();
         fileChooser.showOpenDialog(parent);
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         file = fileChooser.getSelectedFile();
         originalImage = ImageIO.read(file);
         WIDTH = originalImage.getWidth();

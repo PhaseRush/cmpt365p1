@@ -14,10 +14,9 @@ public class Waver {
     Sampler samplingGraph;
 
     public Waver() {
-        JFileChooser fileChooser = new JFileChooser();
+        JFileChooser fileChooser = new JFileChooser("./src/main/resources");
         JFrame frame = new JFrame();
         fileChooser.showOpenDialog(frame);
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         file = fileChooser.getSelectedFile();
     }
 
