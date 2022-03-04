@@ -10,15 +10,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static phaserush.cmpt365p1.q2.Imager.joinBufferedImage;
+
 public class Sampler {
     private final AudioInputStream audioInputStream;
-    private final List<Line2D.Double> lines;
+    private final List<Line2D.Double> linesLeft;
+    private final List<Line2D.Double> linesRight;
     final int WIDTH = 1500;
     final int HEIGHT = 750;
 
     public Sampler(AudioInputStream audioInputStream) {
         this.audioInputStream = audioInputStream;
-        this.lines = new ArrayList<>();
+        this.linesLeft = new ArrayList<>();
+        this.linesRight = new ArrayList<>();
     }
 
     public void createWaveForm() throws IOException {
@@ -28,39 +32,56 @@ public class Sampler {
 
         final int[] audioData;
         final int lengthInSamples = audioBytes.length / 2;
-        audioData = new int[lengthInSamples];
+        audioData = new int[lengthInSamples / 2];
         for (int i = 0; i < lengthInSamples; i++) {
             int lowerBit = audioBytes[2 * i];
             int higherBit = audioBytes[2 * i + 1];
-            audioData[i] = higherBit << 8 | (255 & lowerBit);
+            audioData[i / 2] = higherBit << 8 | (255 & lowerBit);
         }
 
 
-        int pixelFrameWidth = audioBytes.length / format.getFrameSize() / WIDTH;
+        int pixelFrameWidth = audioBytes.length / format.getFrameSize() / WIDTH/2;
         byte currByte;
         double y_last = 0;
+        boolean left = true;
         for (double x = 0; x < WIDTH; x++) {
             int idx = (int) (pixelFrameWidth * 2 * x); // # channels guaranteed to be 2
             currByte = (byte) (128 * audioData[idx] / (2 << 14));
             double y_new = HEIGHT * (128 - currByte) / 256.0; // scale height
-            lines.add(new Line2D.Double(x, y_last, x, y_new));  // connect lines
+            if (left) {
+                linesLeft.add(new Line2D.Double(x, y_last, x, y_new));  // connect lines
+                left = false;
+            } else {
+                linesRight.add(new Line2D.Double(x, y_last, x, y_new));  // connect lines
+                left = true;
+            }
             y_last = y_new;
         }
     }
 
 
     public void render() {
-        final BufferedImage bufferedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        final Graphics2D g2 = bufferedImage.createGraphics();
+        final BufferedImage leftImage = new BufferedImage(WIDTH/2, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        final BufferedImage rightImage = new BufferedImage(WIDTH/2, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        final Graphics2D g2Left = leftImage.createGraphics();
+        final Graphics2D g2Right = rightImage.createGraphics();
 
-        g2.setBackground(Color.WHITE);
-        g2.fillRect(0, 0, WIDTH, HEIGHT);
-        g2.setColor(Color.PINK);
-        lines.forEach(g2::draw); // draw every line
-        g2.dispose();
+        g2Left.setBackground(Color.WHITE);
+        g2Left.fillRect(0, 0, WIDTH, HEIGHT);
+        g2Left.setColor(Color.PINK);
+        linesLeft.forEach(g2Left::draw); // draw every line
+        g2Left.dispose();
 
+        g2Right.setBackground(Color.WHITE);
+        g2Right.fillRect(0, 0, WIDTH, HEIGHT);
+        g2Right.setColor(Color.GREEN);
+        linesRight.forEach(g2Right::draw); // draw every line
+        g2Right.dispose();
+
+
+        final BufferedImage combined = joinBufferedImage(leftImage, rightImage);
         final JFrame frame = new JFrame();
-        final ImageIcon image = new ImageIcon(bufferedImage);
+        final ImageIcon image = new ImageIcon(combined);
         final JLabel label = new JLabel(image);
 
         frame.add(label);
